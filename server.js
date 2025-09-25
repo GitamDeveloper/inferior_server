@@ -20,7 +20,7 @@ server.on("connection", (ws) => {
   ws.on("message", (message) => {
     const data = JSON.parse(message);
 
-    switch (data.action) {
+    switch (data.event) {
       case "create_room_request":
         const room_id = uuidv4();
         rooms[room_id] = { users: [] };
