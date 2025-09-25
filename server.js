@@ -1,5 +1,7 @@
 const WebSocket = require("ws");
 const { v4: uuidv4 } = require("uuid");
+const { json } = require("body-parser");
+const { use } = require("react");
 
 const PORT = process.env.PORT || 3000;
 const server = new WebSocket.Server({ port: PORT });
@@ -8,57 +10,60 @@ console.log("running on ws://0.0.0.0:${PORT}");
 
 const rooms = {}; // { roomId: { users: [] } }
 
+function ws_message(ws, obj) {
+  let json = json.stringify(obj);
+  ws.send(json);
+}
+
 server.on("connection", (ws) => {
-  let currentRoom = null;
+  let current_room = null;
 
   ws.on("message", (message) => {
     const data = JSON.parse(message);
 
-    console.log(data.action)
-
     switch (data.action) {
-      case "createRoom":
-        // Сервер генерирует уникальный UUID
-        const roomId = uuidv4();
-        rooms[roomId] = { users: [] };
-        currentRoom = roomId;
-        rooms[roomId].users.push(ws);
+      case "create_room_request":
+        const room_id = uuidv4();
+        rooms[room_id] = { users: [] };
+        rooms[room_id].users.push(ws);
 
-        ws.send(JSON.stringify({ event: "roomCreated", roomId }));
-        console.log(`[ROOM] Создана новая комната: ${roomId}`);
+        current_room = room_id
+
+        ws_message(ws, { event: "create_room_response", room_id: room_id, state: true })
+        console.log("created room " + room_id);
         break;
 
-      case "joinRoom":
-        const joinId = data.roomId;
-        if (!rooms[joinId]) {
-          ws.send(JSON.stringify({ event: "error", msg: "Room does not exist" }));
+      case "join_room_request":
+        const join_id = data.room_id;
+        if (!rooms[join_id]) {
+          ws_message(ws, { event: "join_room_response", room_id: room_id, state: false})
           return;
         }
 
-        currentRoom = joinId;
-        rooms[joinId].users.push(ws);
-        ws.send(JSON.stringify({ event: "joined", roomId: joinId }));
-        console.log(`[ROOM] Пользователь присоединился к комнате: ${joinId}`);
-        break;
+        rooms[room_id].users.push(ws);
 
-      case "chat":
-        if (!currentRoom) return;
-        // Рассылаем сообщение всем пользователям в комнате
-        rooms[currentRoom].users.forEach((user) => {
+        rooms[room_id].users.forEach((user) => {
           if (user !== ws) {
-            user.send(JSON.stringify({ event: "chat", text: data.text }));
+            ws_message(user, { event: "user_joined_room", room_id: room_id})
           }
         });
+
+        current_room = room_id
+
+        ws_message(ws, { event: "join_room_response", room_id: room_id, state: true})
+        console.log("joined room " + room_id);
+        
         break;
     }
   });
 
   ws.on("close", () => {
-    if (currentRoom && rooms[currentRoom]) {
-      rooms[currentRoom].users = rooms[currentRoom].users.filter((u) => u !== ws);
-      if (rooms[currentRoom].users.length === 0) {
-        delete rooms[currentRoom];
-        console.log(`[ROOM] Комната ${currentRoom} удалена`);
+    if (current_room && rooms[current_room]) {
+      let users = rooms[current_room].users
+      if (users.length === 0) {
+        delete rooms[current_room];
+
+        console.log("deleted room " + current_room)
       }
     }
   });
