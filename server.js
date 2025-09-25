@@ -36,22 +36,22 @@ server.on("connection", (ws) => {
       case "join_room_request":
         const join_id = data.room_id;
         if (!rooms[join_id]) {
-          ws_message(ws, { event: "join_room_response", room_id: room_id, state: false})
+          ws_message(ws, { event: "join_room_response", room_id: join_id, state: false})
           return;
         }
 
-        rooms[room_id].users.push(ws);
+        rooms[join_id].users.push(ws);
 
-        rooms[room_id].users.forEach((user) => {
+        rooms[join_id].users.forEach((user) => {
           if (user !== ws) {
-            ws_message(user, { event: "user_joined_room", room_id: room_id})
+            ws_message(user, { event: "user_joined_room", room_id: join_id})
           }
         });
 
-        current_room = room_id
+        current_room = join_id
 
-        ws_message(ws, { event: "join_room_response", room_id: room_id, state: true})
-        console.log("joined room " + room_id);
+        ws_message(ws, { event: "join_room_response", room_id: join_id, state: true})
+        console.log("joined room " + join_id);
         
         break;
     }
