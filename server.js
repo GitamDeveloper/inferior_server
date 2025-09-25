@@ -20,6 +20,8 @@ server.on("connection", (ws) => {
   ws.on("message", (message) => {
     const data = JSON.parse(message);
 
+    console.log(data)
+
     switch (data.event) {
       case "create_room_request":
         const room_id = uuidv4();
