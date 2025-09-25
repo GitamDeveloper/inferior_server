@@ -1,13 +1,13 @@
 {
   "name": "sfu-chat-server",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "server.js",      // важно указать твой основной файл
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
     "ws": "^8.13.0",
-    "uuid": "^8.3.2"
+    "uuid": "^9.0.0"
   }
 }
