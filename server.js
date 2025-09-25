@@ -1,6 +1,5 @@
 const WebSocket = require("ws");
 const { v4: uuidv4 } = require("uuid");
-const { json } = require("body-parser");
 
 const PORT = process.env.PORT || 3000;
 const server = new WebSocket.Server({ port: PORT });
@@ -10,7 +9,7 @@ console.log("running on ws://0.0.0.0:${PORT}");
 const rooms = {}; // { roomId: { users: [] } }
 
 function ws_message(ws, obj) {
-  let obj_json = json.stringify(obj);
+  let obj_json = JSON.stringify(obj);
   ws.send(obj_json);
 }
 
