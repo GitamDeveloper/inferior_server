@@ -4,7 +4,7 @@ const { v4: uuidv4 } = require("uuid");
 const PORT = process.env.PORT || 3000;
 const server = new WebSocket.Server({ port: PORT });
 
-console.log(`Signaling server запущен на ws://0.0.0.0:${PORT}`);
+console.log("running on ws://0.0.0.0:${PORT}");
 
 const rooms = {}; // { roomId: { users: [] } }
 
@@ -13,6 +13,8 @@ server.on("connection", (ws) => {
 
   ws.on("message", (message) => {
     const data = JSON.parse(message);
+
+    console.log(data.action)
 
     switch (data.action) {
       case "createRoom":
