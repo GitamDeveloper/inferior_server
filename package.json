@@ -1,7 +1,7 @@
 {
   "name": "sfu-chat-server",
   "version": "1.0.0",
-  "main": "server.js",      // важно указать твой основной файл
+  "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
