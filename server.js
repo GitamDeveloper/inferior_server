@@ -79,7 +79,7 @@ server.on("connection", (ws) => {
 
         rooms[send_to_id].users.forEach((user) => {
           if (user !== ws) {
-            ws_message(user, { event: "user_send_msg", room_id: join_id, user_nickname: current_nickname, msg: sended_msg})
+            ws_message(user, { event: "user_send_msg", room_id: send_to_id, user_nickname: current_nickname, msg: sended_msg})
           }
         });
     }
