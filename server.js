@@ -41,7 +41,7 @@ server.on("connection", (ws) => {
           return;
         }
 
-        rooms[join_id].users.push(ws);
+        rooms[join_id].users.push(ws.id);
 
         rooms[join_id].users.forEach((user) => {
           if (user !== ws) {
@@ -62,7 +62,7 @@ server.on("connection", (ws) => {
 
         console.log(rooms)
         
-        if (!rooms[send_to_id] || !rooms[send_to_id].users[ws]) {
+        if (!rooms[send_to_id] || !rooms[send_to_id].users[ws.id]) {
           ws_message(ws, {event: "send_msg_response", state: false})
           return
         }
