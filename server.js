@@ -15,11 +15,11 @@ function ws_message(ws, obj) {
 
 function room_has_user(room, ws) {
   let result = false
-  for (let user of room.users) {
+  rooms[room].users.forEach((user) => {
     if (user == ws) {
       result = true
     }
-  }
+  });
   return result
 }
 
