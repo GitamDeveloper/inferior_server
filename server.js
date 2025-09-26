@@ -59,6 +59,8 @@ server.on("connection", (ws) => {
 
         let send_to_id = data.room_id
         let sended_msg = data.msg
+
+        console.log(rooms)
         
         if (!rooms[send_to_id] || !rooms[send_to_id].users[ws]) {
           ws_message(ws, {event: "send_msg_response", state: false})
