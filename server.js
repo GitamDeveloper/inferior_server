@@ -15,6 +15,7 @@ function ws_message(ws, obj) {
 
 server.on("connection", (ws) => {
   let current_room = null;
+  let current_nickname = "notreal"
 
   ws.on("message", (message) => {
     const data = JSON.parse(message);
@@ -44,7 +45,7 @@ server.on("connection", (ws) => {
 
         rooms[join_id].users.forEach((user) => {
           if (user !== ws) {
-            ws_message(user, { event: "user_joined_room", room_id: join_id})
+            ws_message(user, { event: "user_joined_room", room_id: join_id, user_nickname: current_nickname})
           }
         });
 
@@ -54,6 +55,21 @@ server.on("connection", (ws) => {
         console.log("joined room " + join_id);
         
         break;
+      case "send_msg_request":
+
+        let send_to_id = data.room_id
+        let sended_msg = data.msg
+        
+        if (!rooms[send_to_id] || !rooms[send_to_id].users[ws]) {
+          ws_message(ws, {event: "send_msg_response", state: false})
+          return
+        }
+
+        rooms[send_to_id].users.forEach((user) => {
+          if (user !== ws) {
+            ws_message(user, { event: "user_send_msg", room_id: join_id, user_nickname: current_nickname, msg: sended_msg})
+          }
+        });
     }
   });
 
