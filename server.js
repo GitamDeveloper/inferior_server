@@ -1,5 +1,7 @@
 const WebSocket = require("ws");
 const { v4: uuidv4 } = require("uuid");
+const { use } = require("react");
+const send = require("send");
 
 const PORT = process.env.PORT || 3000;
 const server = new WebSocket.Server({ port: PORT });
@@ -11,6 +13,16 @@ const rooms = {}; // { roomId: { users: [] } }
 function ws_message(ws, obj) {
   let obj_json = JSON.stringify(obj);
   ws.send(obj_json);
+}
+
+function room_has_user(room, ws) {
+  let result = false
+  for (let user of room.users) {
+    if (user == ws) {
+      result = true
+    }
+  }
+  return result
 }
 
 server.on("connection", (ws) => {
@@ -41,7 +53,7 @@ server.on("connection", (ws) => {
           return;
         }
 
-        rooms[join_id].users.push(ws.id);
+        rooms[join_id].users.push(ws);
 
         rooms[join_id].users.forEach((user) => {
           if (user !== ws) {
@@ -62,7 +74,7 @@ server.on("connection", (ws) => {
 
         console.log(rooms)
         
-        if (!rooms[send_to_id] || !rooms[send_to_id].users[ws.id]) {
+        if (!rooms[send_to_id] || !room_has_user(send_to_id, ws)) {
           ws_message(ws, {event: "send_msg_response", state: false})
           return
         }
