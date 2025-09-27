@@ -82,6 +82,7 @@ server.on("connection", (ws) => {
             ws_message(user, { event: "user_send_msg", room_id: send_to_id, user_nickname: current_nickname, msg: sended_msg})
           }
         });
+        break
       case "leave_room_request":
         let leave_room = data.room_id
 
@@ -94,9 +95,10 @@ server.on("connection", (ws) => {
 
         rooms[leave_room].users.forEach((user) => {
           if (user !== ws) {
-            ws_message(user, { event: "user_leaved_room", room_id: join_id, user_nickname: current_nickname})
+            ws_message(user, { event: "user_leaved_room", room_id: leave_room, user_nickname: current_nickname})
           }
         });
+        break
     }
   });
 
