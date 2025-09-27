@@ -82,6 +82,21 @@ server.on("connection", (ws) => {
             ws_message(user, { event: "user_send_msg", room_id: send_to_id, user_nickname: current_nickname, msg: sended_msg})
           }
         });
+      case "leave_room_request":
+        let leave_room = data.room_id
+
+        if (!rooms[leave_room] || !room_has_user(leave_room, ws)) {
+          ws_message(ws, {event: "leave_room_response", state: false})
+          return
+        }
+
+        rooms[leave_room].users = rooms[leave_room].users.filter(user => user !== ws);
+
+        rooms[leave_room].users.forEach((user) => {
+          if (user !== ws) {
+            ws_message(user, { event: "user_leaved_room", room_id: join_id, user_nickname: current_nickname})
+          }
+        });
     }
   });
 
