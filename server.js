@@ -98,18 +98,34 @@ server.on("connection", (ws) => {
             ws_message(user, { event: "user_leaved_room", room_id: leave_room, user_nickname: current_nickname})
           }
         });
+
+        if (leave_room.users.length == 0) {
+          delete rooms[leave_room]
+          console.log("deleted room " + leave_room)
+        }
+
         break
     }
   });
 
   ws.on("close", () => {
-    if (current_room && rooms[current_room]) {
-      let users = rooms[current_room].users
-      if (users.length === 0) {
-        delete rooms[current_room];
 
-        console.log("deleted room " + current_room)
-      }
+    if (!rooms[current_room] || !room_has_user(current_room, ws)) {
+      return
     }
+
+    rooms[current_room].users = rooms[current_room].users.filter(user => user !== ws);
+
+    rooms[current_room].users.forEach((user) => {
+      if (user !== ws) {
+        ws_message(user, { event: "user_leaved_room", room_id: current_room, user_nickname: current_nickname })
+      }
+    });
+
+    if (current_room.users.length == 0) {
+      delete rooms[current_room]
+      console.log("deleted room " + current_room)
+    }
+
   });
 });
