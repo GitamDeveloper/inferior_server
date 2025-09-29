@@ -25,7 +25,7 @@ function room_has_user(room, ws) {
 
 server.on("connection", (ws) => {
   let current_room = null;
-  let current_nickname = "notreal"
+  let current_nickname = "anonymous"
 
   ws.on("message", (message) => {
     const data = JSON.parse(message);
@@ -40,14 +40,14 @@ server.on("connection", (ws) => {
 
         current_room = room_id
 
-        ws_message(ws, { event: "create_room_response", room_id: room_id, state: true })
+        ws_message(ws, { event: "create_room_response", room_id: room_id, status: true })
         console.log("created room " + room_id);
         break;
 
       case "join_room_request":
         const join_id = data.room_id;
         if (!rooms[join_id]) {
-          ws_message(ws, { event: "join_room_response", room_id: join_id, state: false})
+          ws_message(ws, { event: "join_room_response", room_id: join_id, status: false})
           return;
         }
 
@@ -61,7 +61,7 @@ server.on("connection", (ws) => {
 
         current_room = join_id
 
-        ws_message(ws, { event: "join_room_response", room_id: join_id, state: true})
+        ws_message(ws, { event: "join_room_response", room_id: join_id, status: true})
         console.log("joined room " + join_id);
         
         break;
@@ -73,7 +73,7 @@ server.on("connection", (ws) => {
         console.log(rooms)
         
         if (!rooms[send_to_id] || !room_has_user(send_to_id, ws)) {
-          ws_message(ws, {event: "send_msg_response", state: false})
+          ws_message(ws, {event: "send_msg_response", status: false})
           return
         }
 
@@ -87,7 +87,7 @@ server.on("connection", (ws) => {
         let leave_room = data.room_id
 
         if (!rooms[leave_room] || !room_has_user(leave_room, ws)) {
-          ws_message(ws, {event: "leave_room_response", state: false})
+          ws_message(ws, {event: "leave_room_response", status: false})
           return
         }
 
@@ -105,6 +105,13 @@ server.on("connection", (ws) => {
         }
 
         break
+      case "set_current_nickname_request":
+        let new_nickname = data.user_nickname
+
+        if (new_nickname && new_nickname!= "") {
+          current_nickname = new_nickname
+        }
+
     }
   });
 
