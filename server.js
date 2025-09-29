@@ -123,7 +123,7 @@ server.on("connection", (ws) => {
           }
         });
 
-        if (leave_room.users.length == 0) {
+        if (!leave_room.users || leave_room.users.length == 0) {
           delete rooms[leave_room]
           console.log("deleted room " + leave_room)
         }
