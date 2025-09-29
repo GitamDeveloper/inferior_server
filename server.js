@@ -38,6 +38,18 @@ server.on("connection", (ws) => {
         rooms[room_id] = { users: [] };
         rooms[room_id].users.push(ws);
 
+        if (current_room && current_room != null) {
+          rooms[current_room].users = rooms[current_room].users.filter(user => user !== ws);
+
+          rooms[current_room].users.forEach((user) => {
+            if (user !== ws) {
+              ws_message(user, { event: "user_leaved_room", room_id: current_room, user_nickname: current_nickname})
+            }
+          });
+
+          current_room = null
+        }
+
         current_room = room_id
 
         ws_message(ws, { event: "create_room_response", room_id: room_id, status: true })
@@ -49,6 +61,18 @@ server.on("connection", (ws) => {
         if (!rooms[join_id]) {
           ws_message(ws, { event: "join_room_response", room_id: join_id, status: false})
           return;
+        }
+
+        if (current_room && current_room != null) {
+          rooms[current_room].users = rooms[current_room].users.filter(user => user !== ws);
+
+          rooms[current_room].users.forEach((user) => {
+            if (user !== ws) {
+              ws_message(user, { event: "user_leaved_room", room_id: current_room, user_nickname: current_nickname })
+            }
+          });
+
+          current_room = null
         }
 
         rooms[join_id].users.push(ws);
@@ -104,6 +128,8 @@ server.on("connection", (ws) => {
           console.log("deleted room " + leave_room)
         }
 
+        current_room = null
+
         break
       case "set_current_nickname_request":
         let new_nickname = data.user_nickname
@@ -138,6 +164,8 @@ server.on("connection", (ws) => {
       delete rooms[current_room]
       console.log("deleted room " + current_room)
     }
+
+    current_room = null
 
   });
 });
