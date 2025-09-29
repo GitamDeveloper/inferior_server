@@ -75,7 +75,7 @@ server.on("connection", (ws) => {
 
       case "join_room_request":
         const join_id = data.room_id;
-        if (!rooms[join_id]) {
+        if (!rooms[join_id] || room_has_user(join_id, ws)) {
           ws_message(ws, { event: "join_room_response", room_id: join_id, status: false})
           return;
         }
