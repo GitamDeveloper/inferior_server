@@ -27,28 +27,45 @@ server.on("connection", (ws) => {
   let current_room = null;
   let current_nickname = "anonymous"
 
+  function room_user_leave(ws, room) {
+
+    let leave_room = room
+
+    if (!rooms[leave_room] || !room_has_user(leave_room, ws)) {
+      // ws_message(ws, { event: "leave_room_response", status: false })
+      return
+    }
+
+    rooms[leave_room].users = rooms[leave_room].users.filter(user => user !== ws);
+
+    rooms[leave_room].users.forEach((user) => {
+      if (user !== ws) {
+        ws_message(user, { event: "user_leaved_room", room_id: leave_room, user_nickname: current_nickname })
+      }
+    });
+
+    if (!leave_room.users || leave_room.users.length == 0) {
+      delete rooms[leave_room]
+      console.log("deleted room " + leave_room)
+    }
+
+    current_room = null
+  }
+
   ws.on("message", (message) => {
     const data = JSON.parse(message);
 
     console.log(data)
+    console.log(rooms)
 
     switch (data.event) {
       case "create_room_request":
+
+        room_user_leave(ws, current_room)
+        
         const room_id = uuidv4();
         rooms[room_id] = { users: [] };
         rooms[room_id].users.push(ws);
-
-        if (current_room && current_room != null) {
-          rooms[current_room].users = rooms[current_room].users.filter(user => user !== ws);
-
-          rooms[current_room].users.forEach((user) => {
-            if (user !== ws) {
-              ws_message(user, { event: "user_leaved_room", room_id: current_room, user_nickname: current_nickname})
-            }
-          });
-
-          current_room = null
-        }
 
         current_room = room_id
 
@@ -63,17 +80,7 @@ server.on("connection", (ws) => {
           return;
         }
 
-        if (current_room && current_room != null) {
-          rooms[current_room].users = rooms[current_room].users.filter(user => user !== ws);
-
-          rooms[current_room].users.forEach((user) => {
-            if (user !== ws) {
-              ws_message(user, { event: "user_leaved_room", room_id: current_room, user_nickname: current_nickname })
-            }
-          });
-
-          current_room = null
-        }
+        room_user_leave(ws, current_room)
 
         rooms[join_id].users.push(ws);
 
@@ -147,25 +154,6 @@ server.on("connection", (ws) => {
   });
 
   ws.on("close", () => {
-
-    if (!rooms[current_room] || !room_has_user(current_room, ws)) {
-      return
-    }
-
-    rooms[current_room].users = rooms[current_room].users.filter(user => user !== ws);
-
-    rooms[current_room].users.forEach((user) => {
-      if (user !== ws) {
-        ws_message(user, { event: "user_leaved_room", room_id: current_room, user_nickname: current_nickname })
-      }
-    });
-
-    if (current_room.users.length == 0) {
-      delete rooms[current_room]
-      console.log("deleted room " + current_room)
-    }
-
-    current_room = null
-
+    room_user_leave(ws, current_room)
   });
 });
