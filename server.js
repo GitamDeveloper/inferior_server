@@ -99,7 +99,7 @@ server.on("connection", (ws) => {
       case "send_msg_request":
 
         let send_to_id = data.room_id
-        let sended_msg = data.msg
+        let send_msg = data.msg
 
         console.log(rooms)
         
@@ -110,7 +110,7 @@ server.on("connection", (ws) => {
 
         rooms[send_to_id].users.forEach((user) => {
           if (user !== ws) {
-            ws_message(user, { event: "user_send_msg", room_id: send_to_id, user_nickname: current_nickname, msg: sended_msg})
+            ws_message(user, { event: "user_send_msg", room_id: send_to_id, user_nickname: current_nickname, msg: send_msg})
           }
         });
         break
@@ -143,7 +143,7 @@ server.on("connection", (ws) => {
       case "set_current_nickname_request":
         let new_nickname = data.user_nickname
 
-        if (new_nickname && new_nickname!= "" && new_nickname.length < 10) {
+        if (new_nickname && new_nickname!= "" && new_nickname.length < 20) {
           current_nickname = new_nickname
           ws_message(ws, {event: "set_current_nickname_response", status: true})
         }else{
