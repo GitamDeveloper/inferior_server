@@ -44,7 +44,7 @@ server.on("connection", (ws) => {
       }
     });
 
-    if (!leave_room.users || leave_room.users.length == 0) {
+    if (rooms[leave_room].users.length == 0) {
       delete rooms[leave_room]
       console.log("deleted room " + leave_room)
     }
@@ -130,10 +130,12 @@ server.on("connection", (ws) => {
           }
         });
 
-        if (!leave_room.users || leave_room.users.length == 0) {
+        if (rooms[leave_room].users.length == 0) {
           delete rooms[leave_room]
           console.log("deleted room " + leave_room)
         }
+
+        ws_message(ws, {event: "leave_room_response", status: true})
 
         current_room = null
 
