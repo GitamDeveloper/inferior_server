@@ -108,9 +108,14 @@ server.on("connection", (ws) => {
       case "set_current_nickname_request":
         let new_nickname = data.user_nickname
 
-        if (new_nickname && new_nickname!= "") {
+        if (new_nickname && new_nickname!= "" && new_nickname.length < 10) {
           current_nickname = new_nickname
+          ws_message(ws, {event: "set_current_nickname_response", status: true})
+        }else{
+          ws_message(ws, {event: "set_current_nickname_response", status: false})
         }
+
+        break
 
     }
   });
