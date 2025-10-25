@@ -4,158 +4,123 @@ const { v4: uuidv4 } = require("uuid");
 const PORT = process.env.PORT || 3000;
 const server = new WebSocket.Server({ port: PORT });
 
-console.log("running on ws://0.0.0.0:${PORT}");
+console.log(`running on ws://0.0.0.0:${PORT}`);
 
-const rooms = {}; // { roomId: { users: [] } }
+const rooms = {}; // { roomId: { users: [], call: { active: false, users: [], audio_buffers: {} } } }
 
 function ws_message(ws, obj) {
-  let obj_json = JSON.stringify(obj);
-  ws.send(obj_json);
+  ws.send(JSON.stringify(obj));
 }
 
 function room_has_user(room, ws) {
-  let result = false
-  rooms[room].users.forEach((user) => {
-    if (user == ws) {
-      result = true
-    }
-  });
-  return result
+  return rooms[room]?.users.includes(ws);
+}
+
+function room_call_has_user(room, ws) {
+  return rooms[room]?.call?.users.includes(ws);
 }
 
 server.on("connection", (ws) => {
   let current_room = null;
-  let current_nickname = "anonymous"
+  let current_nickname = "anonymous";
 
-  function room_user_leave(ws, room) {
+  function leaveRoom(ws, room) {
+    if (!rooms[room] || !room_has_user(room, ws)) return;
+    rooms[room].users = rooms[room].users.filter(u => u !== ws);
 
-    let leave_room = room
-
-    if (!rooms[leave_room] || !room_has_user(leave_room, ws)) {
-      // ws_message(ws, { event: "leave_room_response", status: false })
-      return
-    }
-
-    rooms[leave_room].users = rooms[leave_room].users.filter(user => user !== ws);
-
-    rooms[leave_room].users.forEach((user) => {
-      if (user !== ws) {
-        ws_message(user, { event: "user_leaved_room", room_id: leave_room, user_nickname: current_nickname })
-      }
+    rooms[room].users.forEach(u => {
+      ws_message(u, { event: "user_leaved_room", user_nickname: current_nickname });
     });
 
-    if (rooms[leave_room].users.length == 0) {
-      delete rooms[leave_room]
-      console.log("deleted room " + leave_room)
+    // leave call if in
+    if (rooms[room].call) {
+      rooms[room].call.users = rooms[room].call.users.filter(u => u !== ws);
+      rooms[room].call.users.forEach(u => {
+        ws_message(u, { event: "user_left_call", user_nickname: current_nickname });
+      });
     }
 
-    current_room = null
+    if (rooms[room].users.length === 0) delete rooms[room];
+    current_room = null;
   }
 
   ws.on("message", (message) => {
-    const data = JSON.parse(message);
+    const data = JSON.parse(message.toString());
 
-    console.log(data)
-    console.log(rooms)
-
-    switch (data.event) {
+    switch(data.event){
       case "create_room_request":
-
-        room_user_leave(ws, current_room)
-        
+        leaveRoom(ws, current_room);
         const room_id = uuidv4();
-        rooms[room_id] = { users: [] };
-        rooms[room_id].users.push(ws);
-
-        current_room = room_id
-
-        ws_message(ws, { event: "create_room_response", room_id: room_id, status: true })
-        console.log("created room " + room_id);
+        rooms[room_id] = { users: [ws], call: { active: false, users: [], audio_buffers: {} } };
+        current_room = room_id;
+        ws_message(ws, { event: "create_room_response", room_id, status: true });
         break;
 
       case "join_room_request":
-        const join_id = data.room_id;
-        if (!rooms[join_id] || room_has_user(join_id, ws)) {
-          ws_message(ws, { event: "join_room_response", room_id: join_id, status: false})
+        if (!rooms[data.room_id] || room_has_user(data.room_id, ws)) {
+          ws_message(ws, { event: "join_room_response", status: false });
           return;
         }
-
-        room_user_leave(ws, current_room)
-
-        rooms[join_id].users.push(ws);
-
-        rooms[join_id].users.forEach((user) => {
-          if (user !== ws) {
-            ws_message(user, { event: "user_joined_room", room_id: join_id, user_nickname: current_nickname})
-          }
+        leaveRoom(ws, current_room);
+        rooms[data.room_id].users.push(ws);
+        rooms[data.room_id].users.forEach(u => {
+          if (u !== ws) ws_message(u, { event: "user_joined_room", user_nickname: current_nickname });
         });
-
-        current_room = join_id
-
-        ws_message(ws, { event: "join_room_response", room_id: join_id, status: true})
-        console.log("joined room " + join_id);
-        
+        current_room = data.room_id;
+        ws_message(ws, { event: "join_room_response", room_id: data.room_id, status: true });
         break;
+
       case "send_msg_request":
-
-        let send_to_id = data.room_id
-        let send_msg = data.msg
-
-        console.log(rooms)
-        
-        if (!rooms[send_to_id] || !room_has_user(send_to_id, ws)) {
-          ws_message(ws, {event: "send_msg_response", status: false})
-          return
-        }
-
-        rooms[send_to_id].users.forEach((user) => {
-          if (user !== ws) {
-            ws_message(user, { event: "user_send_msg", room_id: send_to_id, user_nickname: current_nickname, msg: send_msg})
-          }
+        if (!rooms[data.room_id] || !room_has_user(data.room_id, ws)) return;
+        rooms[data.room_id].users.forEach(u => {
+          if (u !== ws) ws_message(u, { event: "user_send_msg", user_nickname: current_nickname, msg: data.msg });
         });
-        break
+        break;
+
       case "leave_room_request":
-        let leave_room = data.room_id
+        leaveRoom(ws, data.room_id);
+        ws_message(ws, { event: "leave_room_response", status: true });
+        break;
 
-        if (!rooms[leave_room] || !room_has_user(leave_room, ws)) {
-          ws_message(ws, {event: "leave_room_response", status: false})
-          return
-        }
-
-        rooms[leave_room].users = rooms[leave_room].users.filter(user => user !== ws);
-
-        rooms[leave_room].users.forEach((user) => {
-          if (user !== ws) {
-            ws_message(user, { event: "user_leaved_room", room_id: leave_room, user_nickname: current_nickname})
-          }
-        });
-
-        if (rooms[leave_room].users.length == 0) {
-          delete rooms[leave_room]
-          console.log("deleted room " + leave_room)
-        }
-
-        ws_message(ws, {event: "leave_room_response", status: true})
-
-        current_room = null
-
-        break
       case "set_current_nickname_request":
-        let new_nickname = data.user_nickname
+        if (data.user_nickname && data.user_nickname.length < 20) {
+          current_nickname = data.user_nickname;
+          ws_message(ws, { event: "set_current_nickname_response", status: true });
+        } else ws_message(ws, { event: "set_current_nickname_response", status: false });
+        break;
 
-        if (new_nickname && new_nickname!= "" && new_nickname.length < 20) {
-          current_nickname = new_nickname
-          ws_message(ws, {event: "set_current_nickname_response", status: true})
-        }else{
-          ws_message(ws, {event: "set_current_nickname_response", status: false})
+      // Call events
+      case "join_room_call_request":
+        if (!rooms[data.room_id] || !room_has_user(data.room_id, ws) || room_call_has_user(data.room_id, ws)) {
+          ws_message(ws, { event: "join_room_call_response", status: false });
+          return;
         }
+        if (!rooms[data.room_id].call.active) rooms[data.room_id].call.active = true;
+        rooms[data.room_id].call.users.push(ws);
+        rooms[data.room_id].call.users.forEach(u => {
+          if (u !== ws) ws_message(u, { event: "user_joined_room_call", user_nickname: current_nickname });
+        });
+        ws_message(ws, { event: "join_room_call_response", status: true });
+        break;
 
-        break
+      case "leave_room_call_request":
+        if (!rooms[data.room_id] || !room_call_has_user(data.room_id, ws)) return;
+        rooms[data.room_id].call.users = rooms[data.room_id].call.users.filter(u => u !== ws);
+        rooms[data.room_id].call.users.forEach(u => {
+          ws_message(u, { event: "user_left_call", user_nickname: current_nickname });
+        });
+        break;
 
+      case "send_audio_chunk":
+        if (!rooms[data.room_id] || !room_call_has_user(data.room_id, ws)) return;
+        rooms[data.room_id].call.users.forEach(u => {
+          if (u !== ws) ws_message(u, { event: "receive_audio_chunk", user_id: current_nickname, chunk: data.chunk });
+        });
+        break;
     }
   });
 
   ws.on("close", () => {
-    room_user_leave(ws, current_room)
+    leaveRoom(ws, current_room);
   });
 });
