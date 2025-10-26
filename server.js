@@ -219,9 +219,9 @@ server.on("connection", (ws) => {
           return
         }
 
-        let data = rooms[data_room]
+        let room_data = rooms[data_room]
 
-        ws_message(ws, { event: "get_room_data_response", status: true, data: data })
+        ws_message(ws, { event: "get_room_data_response", status: true, room_data: room_data })
 
         break
       case "leave_room_call_request":
